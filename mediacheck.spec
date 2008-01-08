@@ -14,7 +14,7 @@ Group:		File tools
 URL:		http://fedora.redhat.com/projects/anaconda-installer/
 Source0:	%{name}-%{version}.tar.bz2
 Patch0:		mediacheck-7.3-misc.patch
-BuildRequires:	newt-devel
+BuildRequires:	newt-devel slang-devel
 BuildRoot:	%{_tmppath}/%{name}-root
 %description
 The mediacheck package contains utilities for the insertion and 
