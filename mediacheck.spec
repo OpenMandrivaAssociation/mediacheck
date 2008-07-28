@@ -3,7 +3,7 @@
 
 %define name	mediacheck
 %define version	7.3
-%define release	%mkrel 4
+%define release	%mkrel 6
 
 Name:		%{name}
 Version:	%{version}
