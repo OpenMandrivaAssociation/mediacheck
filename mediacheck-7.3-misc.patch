@@ -1,0 +1,171 @@
+--- mediacheck-7.3/md5.h.mdv	2004-01-27 18:46:10.000000000 +0100
++++ mediacheck-7.3/md5.h	2006-09-03 17:23:54.000000000 +0200
+@@ -3,6 +3,7 @@
+ #define MD5_H
+ 
+ #include <sys/types.h>
++#include <string.h>
+ 
+ typedef u_int32_t uint32;
+ 
+@@ -15,6 +16,7 @@
+ void MD5_Init(struct MD5Context *);
+ void MD5_Update(struct MD5Context *, unsigned const char *, unsigned);
+ void MD5_Final(unsigned char digest[16], struct MD5Context *);
++int MD5_Transform(uint32 buf[4], uint32 const in[16]);
+ 
+ /*
+  * This is needed to make RSAREF happy on some MS-DOS compilers.
+--- mediacheck-7.3/checkisomd5.c.mdv	2004-01-27 18:45:54.000000000 +0100
++++ mediacheck-7.3/checkisomd5.c	2006-09-03 17:23:54.000000000 +0200
+@@ -6,6 +6,7 @@
+ #include <stdlib.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#include <unistd.h>
+ #include <fcntl.h>
+ 
+ #include "md5.h"
+@@ -27,7 +28,7 @@
+ int parsepvd(int isofd, char *mediasum, long long *isosize) {
+     unsigned char buf[2048];
+     long long offset;
+-    unsigned char *p;
++    char *p;
+ 
+     if (lseek(isofd, (off_t)(16L * 2048L), SEEK_SET) == -1)
+ 	return ((long long)-1);
+@@ -126,7 +127,7 @@
+ 	MD5_Update(&md5ctx, buf, nread);
+ 	offset = offset + nread;
+ 	if (offset >= tally) {
+-	    printf("Read %5d MB\n", tally/1000/1000);
++	    printf("Read %5lu MB\n", tally/1000/1000);
+ 	    tally += tally_inc;
+ 	}
+     }
+@@ -156,7 +157,7 @@
+ int main(int argc, char **argv) {
+     int isofd;
+     int rc;
+-    unsigned char mediasum[33], computedsum[33];
++    char mediasum[33], computedsum[33];
+ 
+     if (argc < 2) {
+ 	printf("Usage: checkisomd5 <isofilename>\n\n");
+--- mediacheck-7.3/Makefile.mdv	2004-01-27 19:37:39.000000000 +0100
++++ mediacheck-7.3/Makefile	2006-09-03 17:27:05.000000000 +0200
+@@ -11,7 +11,7 @@
+ 
+ BINS=checkisomd5 implantisomd5
+ 
+-COPTS = $(DEBUG) -Wall -DVERSION='"$(VERSION)"' -DTESTING
++COPTS = $(DEBUG) -D_FILE_OFFSET_BITS=64 -Wall -Werror -D_FORTIFY_SOURCE=2 -DVERSION='"$(VERSION)"'
+ 
+ CC=gcc
+ STATIC=#-static
+@@ -23,21 +23,21 @@
+ 	$(CC) -o $@ $(STATIC) md5.o mediacheck.o $(LIBS)
+ 
+ md5.o: md5.c md5.h
+-	$(CC) -O $(COPTS) -c -o md5.o md5.c
++	$(CC) $(COPTS) -c -o md5.o md5.c
+ 
+ mediacheck.o: mediacheck.c mediacheck.h
+-	$(CC) -O $(COPTS) -c -o mediacheck.o mediacheck.c
++	$(CC) $(COPTS) -DTESTING -c -o mediacheck.o mediacheck.c
+ 
+ checkisomd5: checkisomd5.c md5.o
+-	$(CC) -O -o checkisomd5 -DTESTING checkisomd5.c md5.o -lm
++	$(CC) $(COPTS) -o checkisomd5 checkisomd5.c md5.o -lm
+ 
+ implantisomd5: implantisomd5.c md5.o
+-	$(CC) -O -o implantisomd5 implantisomd5.c md5.o -lm
++	$(CC) $(COPTS) -o implantisomd5 implantisomd5.c md5.o -lm
+ 
+ install: all
+ 	mkdir -p $(DESTDIR)/usr/bin
+-	install -m755 -s checkisomd5 $(DESTDIR)/usr/bin
+-	install -m755 -s implantisomd5 $(DESTDIR)/usr/bin
++	install -m755 checkisomd5 $(DESTDIR)/usr/bin
++	install -m755 implantisomd5 $(DESTDIR)/usr/bin
+ 
+ clean: 
+ 	rm -f *.o *~ mediacheck checkisomd5 implantisomd5
+--- mediacheck-7.3/implantisomd5.c.mdv	2004-01-27 18:45:59.000000000 +0100
++++ mediacheck-7.3/implantisomd5.c	2006-09-03 17:23:54.000000000 +0200
+@@ -8,6 +8,7 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <fcntl.h>
++#include <unistd.h>
+ 
+ #include "md5.h"
+ 
+@@ -25,7 +26,9 @@
+ int parsepvd(int isofd, char *mediasum, long long *isosize) {
+     unsigned char buf[2048];
+     long long offset;
++#if 0
+     unsigned char *p;
++#endif
+ 
+     if (lseek(isofd, (off_t)(16L * 2048L), SEEK_SET) == -1)
+ 	return ((long long)-1);
+@@ -75,11 +78,11 @@
+     long long isosize;
+     unsigned char md5sum[16];
+     unsigned int total;
+-    unsigned char *fname;
++    char *fname;
+     unsigned char buf[2048];
+     unsigned char orig_appdata[512];
+     unsigned char new_appdata[512];
+-    unsigned char mediasum[33], computedsum[33];
++    char mediasum[33];
+     unsigned long tally_inc, tally;
+     char md5str[40];
+     MD5_CTX md5ctx;
+@@ -144,7 +147,7 @@
+ 	total = total + nread;
+ 
+ 	if (total >= tally) {
+-	    printf("Read %5d MB\n", tally/1000/1000);
++	    printf("Read %5lu MB\n", tally/1000/1000);
+ 	    tally += tally_inc;
+ 	}
+     }
+@@ -179,4 +182,6 @@
+     close(isofd);
+ 
+     printf("Done!\n");
++
++    return 0;
+ }
+--- mediacheck-7.3/mediacheck.c.mdv	2006-09-03 17:24:24.000000000 +0200
++++ mediacheck-7.3/mediacheck.c	2006-09-03 17:24:56.000000000 +0200
+@@ -40,7 +40,7 @@
+ int parsepvd(int isofd, char *mediasum, long long *isosize) {
+     unsigned char buf[2048];
+     long long offset;
+-    unsigned char *p;
++    char *p;
+ 
+     if (lseek(isofd, (off_t)(16L * 2048L), SEEK_SET) == -1)
+ 	return ((long long)-1);
+@@ -236,7 +236,7 @@
+     int isofd;
+     int rc;
+     char *result;
+-    unsigned char mediasum[33], computedsum[33];
++    char mediasum[33], computedsum[33];
+     char tmpstr[256];
+     char descrstr[256];
+     long long isosize;
+@@ -299,5 +299,6 @@
+     newtCls();
+     rc = mediaCheckFile(argv[1], argv[1]);
+     newtFinished();
++    return 0;
+ }
+ #endif
