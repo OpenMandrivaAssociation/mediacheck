@@ -11,7 +11,7 @@ Release:	%{release}
 Summary:	Utilities for the insertion/verification of iso embedded MD5 sums
 License:	GPL
 Group:		File tools
-URL:		http://fedora.redhat.com/projects/anaconda-installer/
+URL:		https://fedora.redhat.com/projects/anaconda-installer/
 Source0:	%{name}-%{version}.tar.bz2
 Patch0:		mediacheck-7.3-misc.patch
 BuildRequires:	newt-devel slang-devel slang-static-devel
