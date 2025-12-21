@@ -14,6 +14,7 @@ Group:		File tools
 URL:		https://fedora.redhat.com/projects/anaconda-installer/
 Source0:	%{name}-%{version}.tar.bz2
 Patch0:		mediacheck-7.3-misc.patch
+BuildRequires:	make
 BuildRequires:	newt-devel slang-devel slang-static-devel
 BuildRoot:	%{_tmppath}/%{name}-root
 %description
